@@ -27,10 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
+    "game",
     "daphne",
     "chat",
     "polls.apps.PollsConfig",
@@ -137,9 +137,10 @@ ASGI_APPLICATION = "mysite.asgi.application"
 ASGI_APPLICATION = "mysite.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
-        },
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
     },
 }
+
+STATICFILES_DIRS = [
+	'static/',	
+]
