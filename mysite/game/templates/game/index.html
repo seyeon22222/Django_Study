@@ -152,21 +152,28 @@
 					Main.ball = new Ball();
 					Main.stick1 = new Stick([-15, 0, 0]);
 					Main.stick2 = new Stick([15, 0, 0]);
-
-					Main.ws = new WebSocket('ws://' + window.location.host + '/ws/game/');
 					
-					Main.ws.onopen = function(event) {
- 					// 연결이 성공적으로 열린 후, 주기적으로 메시지를 보내기 시작합니다.
- 						startPeriodicMessage();
-					};
+					function connect() {
+					    Main.ws = new WebSocket('ws://' + window.location.host + '/ws/game/');
 
-					function startPeriodicMessage() {
-  						setInterval(function() {
-    						if (Main.ws.readyState === WebSocket.OPEN) {
-      							Main.ws.send('Hello, server!'); // 서버에 보낼 메시지
-    						}
-  						}, 100); // 5초마다 메시지를 보냅니다.
+					    Main.ws.onopen = function() {
+					        console.log('웹소켓 연결 성공');
+					    };
+					
+					    Main.ws.onclose = function(e) {
+					        console.log('웹소켓 연결 끊김. 재연결 시도 중...');
+					        setTimeout(function() {
+					            connect();
+					        }, 1);
+					    };
+					
+					    Main.ws.onerror = function(err) {
+					        console.error('웹소켓 오류 발생:', err);
+					        Main.ws.close(); // 오류 발생 시 명시적으로 닫기
+					    };
 					}
+
+					connect();
 
         			Main.ws.onmessage = async function(e) {
             			var data = JSON.parse(e.data);
@@ -186,6 +193,8 @@
             			console.log("Received score2: " + score2);
 						
 						Main.ball.pos = ball_pos;
+						Main.stick1.pos = paddle1_pos;
+						Main.stick2.pos = paddle2_pos;
         			}
 
        				window.addEventListener('keydown',  async function(e) {
@@ -240,8 +249,8 @@
 						Main.mesh3.draw(Main.program);
 				}
 				static update() {
-					let dt = (performance.now() - Main.lastTime) / 1000;
-					Main.lastTime = performance.now();
+					// let dt = (performance.now() - Main.lastTime) / 1000;
+					// Main.lastTime = performance.now();
 					
 					// Main.stick1.update((Main.keyQ - Main.keyA) * 10 * dt);
 					// if (Main.ball.pos[1] > Main.stick2.top[1])
@@ -252,8 +261,6 @@
 					// if (isNaN(Main.ball.pos[0]) || isNaN(Main.ball.pos[1]) || isNaN(Main.ball.pos[2]))
 					// 	return;
 					
-					// Main.stick1.pos = paddle1_pos;
-					// Main.stick2.pos = paddle2_pos;
 					Main.render();
 					requestAnimationFrame(Main.update);
 				}
