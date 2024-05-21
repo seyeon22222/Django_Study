@@ -84,7 +84,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'score1': score1,
             'score2': score2,}))
             # 초 대기
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.001)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)

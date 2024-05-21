@@ -164,7 +164,7 @@
 					        console.log('웹소켓 연결 끊김. 재연결 시도 중...');
 					        setTimeout(function() {
 					            connect();
-					        }, 1);
+					        }, 100000);
 					    };
 					
 					    Main.ws.onerror = function(err) {
