@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    networks:
+      - db-connection
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    env_file:
+      - .env
+
+  app:
+    build:
+      context: .
+      dockerfile: ft_back/dockerfile
+    volumes:
+      - ./ft_back:/code
+    networks:
+      - db-connection
+      - server-connection
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+ 
+    depends_on:
+      - db
+    
+  nginx:
+    build:
+      context: .
+      dockerfile: ft_back/nginx/dockerfile
+    ports:
+      - '8000:80'
+    volumes:
+      - ./ft_back/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - server-connection
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - db
+
+networks:
+  server-connection:
+    driver: bridge
+  db-connection:
+    driver: bridge
