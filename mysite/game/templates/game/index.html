@@ -26,6 +26,8 @@
 				static keyQ = 0;
 				static lastTime = 0;
 				static ws = null;
+				static players = 0;
+
 				static entry() {
 					const canvas = document.getElementById("canvas");
 					// canvas.width = document.body.clientWidth;
@@ -184,6 +186,7 @@
             			var paddle2_pos = data['paddle2_pos'];
             			var score1 = data['score1'];
             			var score2 = data['score2'];
+						var players = data['players'];
 
             			console.log("Received message: " + message);
             			console.log("Received ball_pos: " + ball_pos);
@@ -191,31 +194,44 @@
             			console.log("Received paddle2_pos: " + paddle2_pos);
             			console.log("Received score1: " + score1);
             			console.log("Received score2: " + score2);
+						console.log("Received players: " + players);
 						
 						Main.ball.pos = ball_pos;
 						Main.stick1.pos = paddle1_pos;
 						Main.stick2.pos = paddle2_pos;
+						if (Main.players == 0)
+							Main.players = players;
         			}
 
-       				window.addEventListener('keydown',  async function(e) {
-       				    var message = { message: e.key };
-       				    Main.ws.send(JSON.stringify(message));
-       				});
-
-					Main.lastTime = performance.now();
-					document.addEventListener('keydown', async function (event) {
+					window.addEventListener('keydown', async function (event) {
+						var message = { message: event.key, players: Main.players};
+					
 						if (event.code === 'KeyQ')
-    						Main.keyQ = 1;
+							message = { message: '1pup', players: Main.players};
 						if (event.code == 'KeyA')
-							Main.keyA = 1;
-					});
-					document.addEventListener('keyup', async function (event) {
-						if (event.code === 'KeyQ')
-    						Main.keyQ = 0;
-						if (event.code == 'KeyA')
-							Main.keyA = 0;
+							message = { message: '1pdown', players: Main.players};
+						if (event.code === 'KeyO')
+							message = { message: '2pup', players: Main.players};
+						if (event.code == 'KeyL')
+							message = { message: '2pdown', players: Main.players};
+						
+						Main.ws.send(JSON.stringify(message));
 					});
 
+					window.addEventListener('keyup', async function (event) {
+						var message = { message: event.key, players: Main.players};
+					
+						if (event.code === 'KeyQ')
+							message = { message: '1pupstop', players: Main.players};
+						if (event.code == 'KeyA')
+							message = { message: '1pdownstop', players: Main.players};
+						if (event.code === 'KeyO')
+							message = { message: '2pupstop', players: Main.players};
+						if (event.code == 'KeyL')
+							message = { message: '2pdownstop', players: Main.players};
+						
+						Main.ws.send(JSON.stringify(message));
+					});
 					requestAnimationFrame(Main.update);
 				}
 				static render() {
