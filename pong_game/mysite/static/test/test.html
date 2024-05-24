@@ -1,0 +1,244 @@
+<html>
+	<body>
+		<canvas id="canvas"></canvas>
+		<script src="graphics/Buffer.js"></script>
+		<script src="graphics/Shader.js"></script>
+		<script src="graphics/Program.js"></script>
+		<script src="graphics/Framebuffer.js"></script>
+		<script src="graphics/DefaultFramebuffer.js"></script>
+		<script src="graphics/VertexArray.js"></script>
+		<script src="graphics/VertexBuffer.js"></script>
+		<script src="graphics/Mesh.js"></script>
+		<script src="graphics/Mat4x4.js"></script>
+		<script src="graphics/Geometry.js"></script>
+		<script>
+			class Main {
+				static gl = null;
+				static	vbo_buffer = null;
+				static	vbo = null;
+				static	vao = null;
+				static	program = null;
+				static	mesh = null;
+				static	mesh2 = null;
+				static	degree = 0;
+				static x = 0;
+				static y = 0;
+				static z = 0;
+				static texture = null;
+				static keyA = 0;
+				static keyD = 0;
+				static keyS = 0;
+				static keyW = 0;
+				static lastTime = 0;
+				static entry() {
+					const canvas = document.getElementById("canvas");
+					// canvas.width = document.body.clientWidth;
+					// canvas.height = document.body.clientHeight;
+					canvas.width = 1200;
+					canvas.height = 650;
+					const	gl = canvas.getContext("webgl2");
+					if (!gl) {
+						alert("Webgl2 not supported!");
+					}
+					// 크기 대응 필요
+
+					gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+					const vs = new Shader(gl, gl.VERTEX_SHADER);
+					const fs = new Shader(gl, gl.FRAGMENT_SHADER);
+					vs.shaderSource(`#version 300 es
+					in vec4	position;
+					in vec2	uv;
+					
+					uniform mat4 model;
+					uniform mat4 vp;
+
+					out vec4	color;
+
+					vec4 moveMatrix = vec4(0, 0, 0, 0);
+					void	main() {
+						gl_Position = vp * model * position;
+						color = vec4(0.8, 0.8, 0.8, 1.0);
+					}`);
+					fs.shaderSource(`#version 300 es
+					precision mediump float; // float의 바이트를 정함
+
+					in vec4	color;
+					uniform sampler2D	tex;
+
+					out vec4	fragColor;
+
+					void	main() {
+						// fragColor = texture(tex, f_uv);
+						fragColor = color;
+						// fragColor = vec4(f_uv, 1.0, 1.0);
+					}`);
+					vs.compile();
+					fs.compile();
+					const program = new Program(gl);
+					program.attach(vs);
+					program.attach(fs);
+					program.link();
+
+					const	data = new Float32Array([
+						// 앞면(Back face)
+						-0.5, -0.5, 0.5,  -0.5, 0.5, 0.5,  0.5, 0.5, 0.5,  0.5, -0.5, 0.5,
+						
+						// 뒷면(Front face)
+						-0.5, -0.5, -0.5,   0.5, -0.5, -0.5,   0.5, 0.5, -0.5,  -0.5, 0.5, -0.5,
+
+						// 윗면(Top face)
+						-0.5, 0.5, -0.5,  -0.5, 0.5, 0.5,   0.5, 0.5, 0.5,   0.5, 0.5, -0.5,
+
+						// 아랫면(Bottom face)
+						-0.5, -0.5, -0.5,  -0.5, -0.5, 0.5,  0.5, -0.5, 0.5,  0.5, -0.5, -0.5,
+
+						// 오른쪽면(Right face)
+						0.5, 0.5, -0.5,  0.5, -0.5, -0.5,  0.5, -0.5, 0.5,  0.5, 0.5, 0.5,
+
+						// 왼쪽면(Left face)
+						-0.5, 0.5, -0.5,  -0.5, 0.5, 0.5,   -0.5, -0.5, 0.5,  -0.5, -0.5, -0.5,
+					]);
+					const	uv = new Float32Array([
+						0.0, 1.0,    0.0, 0.0,    1.0, 0.0,    1.0, 1.0, // 앞
+						1.0, 1.0,    0.0, 1.0,    0.0, 0.0,    1.0, 0.0, // 뒤
+						0.0, 0.0,    0.0, 1.0,    1.0, 1.0,    1.0, 0.0, // 위
+						0.0, 1.0,    0.0, 0.0,    1.0, 0.0,    1.0, 1.0, // 아래
+						1.0, 0.0,    1.0, 1.0,    0.0, 1.0,    0.0, 0.0, // 오른
+						0.0, 0.0,    1.0, 0.0,    1.0, 1.0,    0.0, 1.0 // 왼
+					]);
+					const	vertex_buffer = new Buffer(gl, gl.ARRAY_BUFFER, 72 * 4, gl.STATIC_DRAW); // 버퍼 생성
+					vertex_buffer.setData(0, data, 0, 72 * 4); // 버퍼 정보 입력
+					const	uv_buffer = new Buffer(gl, gl.ARRAY_BUFFER, 32 * 6, gl.STATIC_DRAW);
+					uv_buffer.setData(0, uv, 0, 32 * 6);
+
+					const	position_view = new VertexBuffer(gl, vertex_buffer, 3, gl.FLOAT, false); // 버택스 버퍼(포지션) 읽는 형식 설정
+					const	uv_view = new VertexBuffer(gl, uv_buffer, 2, gl.FLOAT, false); 
+					const	buffer_view = { // 쉐이더와 데이터 형식 일치
+						"position": position_view,
+						"uv": uv_view
+					};
+					let indices = [ 0, 2, 1, 0, 3, 2, // 앞
+									 4, 6, 5, 4, 7, 6, // 뒤
+									 8, 9, 10, 8, 10, 11, // 위
+									 12, 15, 13, 15, 14, 13, // 아래
+									 16, 19, 18, 16, 18, 17, // 오른 
+									 21, 20, 22, 22, 20, 23]; // 왼
+					const	mesh = Mesh.from(gl, buffer_view, indices); // 메쉬 생성
+
+
+					// const	vertex_buffer2 = new Buffer(gl, gl.ARRAY_BUFFER, 72 * 4, gl.STATIC_DRAW); // 버퍼 생성
+					// vertex_buffer2.setData(0, data, 0, 72 * 4); // 버퍼 정보 입력
+					// const	uv_buffer2 = new Buffer(gl, gl.ARRAY_BUFFER, 32 * 6, gl.STATIC_DRAW);
+					// uv_buffer2.setData(0, uv, 0, 32 * 6);
+
+					
+					let sphere = new Geometry();
+					sphere.createSphere();
+					const v_buffer = new Buffer(gl, gl.ARRAY_BUFFER, sphere.vertices.length * 4, gl.STATIC_DRAW);
+					v_buffer.setData(0, new Float32Array(sphere.vertices), 0, sphere.vertices.length * 4);
+					const uv_buffer3 = new Buffer(gl, gl.ARRAY_BUFFER, 32 * 6, gl.STATIC_DRAW);
+					uv_buffer3.setData(0, uv, 0, 32 * 6);
+					const pos_view = new VertexBuffer(gl, v_buffer, 3, gl.FLOAT, false);
+					const	uv_view3 = new VertexBuffer(gl, uv_buffer3, 2, gl.FLOAT, false); 
+					const	mesh2 = Mesh.from(gl, buffer_view, sphere.indices); // 메쉬 생성
+
+
+
+					// view 행렬 설정
+					let camMatrix = Mat4x4.camMatrix([0, 0, 1], [0, 1, 0], [0, 0, 5]);
+					let viewMatrix = Mat4x4.viewMatrix(camMatrix);
+					
+					// 투영 행렬 설정
+					let projectionMatrix = Mat4x4.projectionMatrix(Math.PI * 0.5, 0.1, 1000, canvas.width / canvas.height);
+					let vpLocation = gl.getUniformLocation(program.id, "vp");
+					let vpMatirx = Mat4x4.multipleMat4(projectionMatrix, viewMatrix);
+
+					const image = new Image();
+					image.src = "./f-texture.png";
+					const texture = gl.createTexture();
+					gl.bindTexture(gl.TEXTURE_2D, texture);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+					var w = 0;
+					var h = 0;
+					image.addEventListener("load", () => {
+						gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, image);
+					});
+					gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 256, 256);
+
+					// gl.bindTexture(gl.TEXTURE_2D, null);
+
+					let texlocation = gl.getUniformLocation(program.id, "tex");
+					
+
+					gl.activeTexture(gl.TEXTURE1);
+					gl.bindTexture(gl.TEXTURE_2D, texture);
+					gl.activeTexture(gl.TEXTURE0);
+					program.use();
+					gl.uniform1i(texlocation, 1);
+					gl.uniformMatrix4fv(vpLocation, true, vpMatirx);
+
+					Main.gl = gl;
+					Main.program = program;
+					Main.mesh = mesh;
+					Main.mesh2 = mesh2;
+					Main.lastTime = performance.now();
+					document.addEventListener('keydown', function (event) {
+						if (event.code === 'KeyW')
+    						Main.keyW = 1;
+						if (event.code === 'KeyS')
+    						Main.keyS = 1;
+						if (event.code == 'KeyA')
+							Main.keyA = 1;
+						if (event.code == 'KeyD')
+							Main.keyD = 1;
+					});
+					document.addEventListener('keyup', function (event) {
+						Main.keyW = 0;
+						Main.keyS = 0;
+						Main.keyA = 0;
+						Main.keyD = 0;
+					});
+					requestAnimationFrame(Main.update);
+				}
+				static update() {
+					let dt = (performance.now() - Main.lastTime) / 1000;
+					Main.lastTime = performance.now();
+					let position = [Main.x, Main.y, Main.z];
+					function render() {
+						DefaultFramebuffer.setClearColor(0.4, 0.4, 0.4, 1.0);
+						Main.gl.enable(Main.gl.CULL_FACE | Main.gl.DEPTH_BUFFER_BIT);
+						Main.gl.cullFace(Main.gl.BACK);
+						DefaultFramebuffer.clearColor(Main.gl);
+						let modelLocation = Main.gl.getUniformLocation(Main.program.id, "model");
+						let modelPos = Mat4x4.transportMat([0, 2, 0]);
+						let modelRot = Mat4x4.rotMatAxis([1, 1, 0, 0], Main.degree);
+						let modelMatrix = Mat4x4.multipleMat4(modelPos, modelRot);
+
+
+						Main.program.use();
+
+						Main.gl.uniformMatrix4fv(modelLocation, true, modelMatrix);
+						Main.mesh.draw(Main.program);
+
+						modelPos = Mat4x4.transportMat(position);
+						modelRot = Mat4x4.identityMat();
+						modelMatrix = Mat4x4.multipleMat4(modelPos, modelRot);
+
+						Main.gl.uniformMatrix4fv(modelLocation, true, modelMatrix);
+						Main.mesh2.draw(Main.program);
+					}
+
+					Main.x += (Main.keyD - Main.keyA) * 3 * dt;
+					Main.y += (Main.keyW - Main.keyS) * 3 * dt;
+					// Main.degree += 30 * dt;
+
+					render();
+					requestAnimationFrame(Main.update);
+				}
+			}
+			// requestAnimationFrame(Main.entry);
+			Main.entry();
+		</script>
+	</body>
+</html>

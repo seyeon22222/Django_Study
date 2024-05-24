@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <div id="keyDisplay">키 입력을 기다리는 중...</div>
+    <script>
+        var ws = new WebSocket('ws://' + window.location.host + '/ws/game/test/');
+        ws.onmessage = function(e) {
+            var data = JSON.parse(e.data);
+            var message = data['message'];
+            var ball_pos = data['ball_pos'];
+            var paddle1_pos = data['paddle1_pos'];
+            var paddle2_pos = data['paddle2_pos'];
+            var score1 = data['score1'];
+            var score2 = data['score2'];
+
+            console.log("Received message: " + message);
+            console.log("Received ball_pos: " + ball_pos);
+            console.log("Received paddle1_pos: " + paddle1_pos);
+            console.log("Received paddle2_pos: " + paddle2_pos);
+            console.log("Received score1: " + score1);
+            console.log("Received score2: " + score2);
+
+            // 화면에 키 입력을 표시
+            document.getElementById('keyDisplay').textContent = `받은 키: ${message}`;
+        }
+
+        window.addEventListener('keydown', function(e) {
+            var message = { message: e.key };
+            ws.send(JSON.stringify(message));
+        });
+    </script>
+</body>
+</html>
