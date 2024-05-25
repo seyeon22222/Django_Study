@@ -27,6 +27,10 @@
 				static lastTime = 0;
 				static ws = null;
 				static players = 0;
+				static camDegree = 0;
+				static camMat4;
+				static projMat4;
+				static vpLoc;
 
 				static pos_ball_tmp = [0, 0, 0];
 				static paddle1 = [0, 0, 0];
@@ -137,15 +141,16 @@
 
 					// view 행렬 설정
 					let camMatrix = Mat4x4.camMatrix([0, 0, 1], [0, 1, 0], [0, 0, 20]);
-					let viewMatrix = Mat4x4.viewMatrix(camMatrix);
+					Main.camMat4 = camMatrix;
 					
 					// 투영 행렬 설정
 					let projectionMatrix = Mat4x4.projectionMatrix(Math.PI / 3, 0.1, 1000, canvas.width / canvas.height);
+					Main.projMat4 = projectionMatrix;
 					let vpLocation = gl.getUniformLocation(program.id, "vp");
-					let vpMatirx = Mat4x4.multipleMat4(projectionMatrix, viewMatrix);
+					Main.vpLoc = vpLocation;
+					
 
 					program.use();
-					gl.uniformMatrix4fv(vpLocation, true, vpMatirx);
 
 					Main.gl = gl;
 					Main.program = program;
@@ -182,69 +187,75 @@
 					connect();
 
         			Main.ws.onmessage = async function(e) {
-            			var data = JSON.parse(e.data);
-            			var data = JSON.parse(e.data);
-            			var message = data['message'];
-            			var ball_pos = data['ball_pos'];
-            			var paddle1_pos = data['paddle1_pos'];
-            			var paddle2_pos = data['paddle2_pos'];
-            			var score1 = data['score1'];
-            			var score2 = data['score2'];
-						var players = data['players'];
+            			let data = JSON.parse(e.data);
+            			let message = data['message'];
+            			let ball_pos = data['ball_pos'];
+            			let paddle1_pos = data['paddle1_pos'];
+            			let paddle2_pos = data['paddle2_pos'];
+            			let score1 = data['score1'];
+            			let score2 = data['score2'];
+						let players = data['players'];
 
-            			/*
-						console.log("Received message: " + message);
-            			console.log("Received ball_pos: " + ball_pos);
-						console.log("Received ball_pos type: " + typeof(ball_pos) + " Array: " + Array.isArray(ball_pos));
-            			console.log("Received paddle1_pos: " + paddle1_pos);
-            			console.log("Received paddle2_pos: " + paddle2_pos);
-            			console.log("Received score1: " + score1);
-            			console.log("Received score2: " + score2);
-						console.log("Received players: " + players);
-						*/
 						for (let i = 0; i < 3; i++) {
 							Main.stick1.pos[i] = paddle1_pos[i];
 							Main.stick2.pos[i] = paddle2_pos[i];
 							Main.ball.pos[i] = ball_pos[i];
 						}
-						/*
-						Main.stick1.pos = paddle1_pos;
-						Main.stick2.pos = paddle2_pos;
-						Main.ball.pos = ball_pos;
-						*/
 						if (Main.players == 0)
 							Main.players = players;
         			}
 
 					window.addEventListener('keydown', async function (event) {
-						var message = { message: event.key, players: Main.players};
-					
-						if (event.code === 'KeyQ')
+						let message = { message: event.key, players: Main.players};
+						let flag = 0;
+
+						if (event.code === 'KeyQ') {
 							message = { message: '1pup', players: Main.players};
-						if (event.code == 'KeyA')
+							flag = 1;
+						}
+						if (event.code === 'KeyA') {
 							message = { message: '1pdown', players: Main.players};
-						if (event.code === 'KeyO')
+							flag = 1;
+						}
+						if (event.code === 'KeyO') {
 							message = { message: '2pup', players: Main.players};
-						if (event.code == 'KeyL')
+							flag = 1;
+						}
+						if (event.code === 'KeyL') {
 							message = { message: '2pdown', players: Main.players};
-						
-						//Main.ws.send(JSON.stringify(message));
+							flag = 1;
+						}
+						if (event.code === 'ArrowRight')
+							Main.camDegree = Math.min(45, Main.camDegree + 1);
+						if (event.code === 'ArrowLeft')
+							Main.camDegree = Math.max(-45, Main.camDegree - 1);
+						if (flag)
+							Main.ws.send(JSON.stringify(message));
 					});
 
 					window.addEventListener('keyup', async function (event) {
-						var message = { message: event.key, players: Main.players};
-					
-						if (event.code === 'KeyQ')
+						let message = { message: event.key, players: Main.players};
+						let flag = 0;
+						if (event.code === 'KeyQ') {
 							message = { message: '1pupstop', players: Main.players};
-						if (event.code == 'KeyA')
+							flag = 1;
+						}
+						if (event.code == 'KeyA') {
 							message = { message: '1pdownstop', players: Main.players};
-						if (event.code === 'KeyO')
+							flag = 1;
+						}
+						if (event.code === 'KeyO') {
 							message = { message: '2pupstop', players: Main.players};
-						if (event.code == 'KeyL')
+							flag = 1;
+						}
+						if (event.code === 'KeyL') {
 							message = { message: '2pdownstop', players: Main.players};
-						
-						//Main.ws.send(JSON.stringify(message));
-						console.log(JSON.stringify(message));
+							flag = 1;
+						}
+						if (event.code === 'ArrowRight' || event.code === 'ArrowLeft')
+							Main.camDegree = 0;
+						if (flag)
+							Main.ws.send(JSON.stringify(message));
 					});
 					requestAnimationFrame(Main.update);
 				}
@@ -256,8 +267,10 @@
 						DefaultFramebuffer.clearColor(Main.gl);
 
 						let modelLocation = Main.gl.getUniformLocation(Main.program.id, "model");
-
+						let viewMatrix = Mat4x4.viewMatrix(Mat4x4.multipleMat4(Main.camMat4, Mat4x4.rotMatAxisY(Main.camDegree)));
+						let vpMatirx = Mat4x4.multipleMat4(Main.projMat4, viewMatrix);
 						Main.program.use();
+						Main.gl.uniformMatrix4fv(Main.vpLoc, true, vpMatirx);
 
 						// ball
 						Main.gl.uniformMatrix4fv(modelLocation, true, Mat4x4.transportMat(Main.pos_ball_tmp));
