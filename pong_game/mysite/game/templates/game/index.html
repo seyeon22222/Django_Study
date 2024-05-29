@@ -1,6 +1,9 @@
 <html>
+	<link rel="stylesheet" href="../../../static/graphics/main.css"/>
 	<body>
-		<canvas id="canvas"></canvas>
+		<div class="game-container">
+			<canvas id="canvas"></canvas>
+		</div>
 		<script src="../../../static/graphics/Buffer.js"></script>
 		<script src="../../../static/graphics/Shader.js"></script>
 		<script src="../../../static/graphics/Program.js"></script>
@@ -12,7 +15,6 @@
 		<script src="../../../static/graphics/Geometry.js"></script>
 		<script src="../../../static/phong/ball.js"></script>
 		<script>
-			// 시험삼아 <- 무시
 			class Main {
 				static gl = null;
 				static	program = null;
@@ -39,10 +41,13 @@
 
 				static entry() {
 					const canvas = document.getElementById("canvas");
-					// canvas.width = document.body.clientWidth;
-					// canvas.height = document.body.clientHeight;
-					canvas.width = 1200;
-					canvas.height = 650;
+					canvas.height = window.innerHeight - 50
+					canvas.width = window.innerWidth - 50
+
+					window.addEventListener('resize', () => {  
+					canvas.height = window.innerHeight - 50
+					canvas.width = window.innerWidth - 50
+					})
 					const	gl = canvas.getContext("webgl2");
 					if (!gl) {
 						alert("Webgl2 not supported!");
