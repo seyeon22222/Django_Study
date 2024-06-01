@@ -1,0 +1,29 @@
+.game-score {
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh;
+}
+
+
+.game-container {
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh;
+}
+  
+canvas {
+    height: 60vh;
+    width: 75%;
+    border: 4px solid #000;
+    margin: auto;
+    display: block;
+} 
+
+
+
+.canvas-css {
+    height: 1200px;
+    width: 650px;
+}
