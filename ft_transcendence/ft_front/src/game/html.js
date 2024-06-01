@@ -1,9 +1,11 @@
 export function game_html() {
     return `
 	<link rel="stylesheet" href="../src/static/game.css">
+	<div>
+	  <p id="game-score">0:0</p>
+	</div>
 	<div class="game-container">
-		안녕하세요<br>
-	<canvas id="canvas"></canvas>
+	  <canvas id="canvas"></canvas>
 	</div>
     `;
 }

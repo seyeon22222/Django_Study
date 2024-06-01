@@ -70,7 +70,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'score2': score2,
             }))
             # 초 대기
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.001)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -95,17 +95,3 @@ class GameConsumer(AsyncWebsocketConsumer):
             p2.dir[1] = 0
         if (message == '2pdownstop' and p2.dir[1] == -1 and player % 2 == 0):
             p2.dir[1] = 0
-        ball_pos = b.pos
-        paddle1_pos = p1.pos
-        paddle2_pos = p2.pos
-        score1 = s1
-        score2 = s2
-        # 클라이언트로부터 받은 메시지를 다시 클라이언트로 전송
-        await self.send(text_data=json.dumps({
-            'message': message,
-            'ball_pos': ball_pos,
-            'paddle1_pos': paddle1_pos,
-            'paddle2_pos': paddle2_pos,
-            'score1': score1,
-            'score2': score2,
-        }))
