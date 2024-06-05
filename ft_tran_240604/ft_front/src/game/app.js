@@ -77,6 +77,7 @@ class Main {
       let score1 = data["score1"];
       let score2 = data["score2"];
       let players = data["players"];
+
       if (document.getElementById("game-score")) {
         document.getElementById("game-score").innerHTML =
           score1 + " : " + score2;
