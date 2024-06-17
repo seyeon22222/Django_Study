@@ -1,0 +1,14 @@
+.game-container {
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    min-height: 80vh;
+}
+  
+#canvas {
+    height: 60vh;
+    width: 75%;
+    border: 4px solid #000;
+    margin: auto;
+    display: block;
+} 
