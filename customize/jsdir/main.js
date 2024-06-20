@@ -17,39 +17,54 @@ class Main {
 		Main.cam = Setting.setCam();
 		Main.ray = new Ray(Main.cam);
 
+		EventManager.setEventKeyboard(Main.cam);
 		EventManager.setEventMouse(Main.ray, Main.add_button, Main.objects);
 
 		requestAnimationFrame(Main.update);
 	}
-
+	
 	static render() {
 		Setting.setRender();
 		Main.cam.putCam();
-		let test = false;
-		for (let i = 0; i < 5; i++)
+		for (let i = 0; i < 6; i++) {
+			if (i === 1)
+				continue;
 			Main.objects[i].draw(false);
-		for (let i = 5; i < Main.objects.length; i++) {
+		}
+		for (let i = 6; i < Main.objects.length; i++) {
 			let flag = false;
-			for (let j = 1; j < i; j++) {
-				if (Main.objects[i].collision(Main.objects[j]) === true) {
-					flag = true;
-					console.log("collision: ", i, ", ", j);
-					test = true;
-					break;
+			if (Main.objects[i].pos[0] >= 14 || Main.objects[i].pos[0] <= -14)
+				flag = true;
+			if (Main.objects[i].pos[1] >= 7 || Main.objects[i].pos[1] <= -7)
+				flag = true;
+			let max_x = -100, max_y = -100, min_x = 100, min_y = 100;
+			for (let k = 0; k < 4; k++) {
+				if (Main.objects[i].colbox.vertices[k][0] > max_x)
+					max_x = Main.objects[i].colbox.vertices[k][0];
+				if (Main.objects[i].colbox.vertices[k][0] < min_x)
+					min_x = Main.objects[i].colbox.vertices[k][0];
+				if (Main.objects[i].colbox.vertices[k][1] > max_y)
+					max_y = Main.objects[i].colbox.vertices[k][1];
+				if (Main.objects[i].colbox.vertices[k][1] < min_y)
+					min_y = Main.objects[i].colbox.vertices[k][1];
+			}
+			if (max_x > 14 || min_x < -14 || max_y > 7 || min_y < -7)
+				flag = true;
+			if (flag === false) {
+				for (let j = 1; j < i; j++) {
+					if (Main.objects[i].collision(Main.objects[j]) === true) {
+						flag = true;
+						break;
+					}
 				}
 			}
 			Main.objects[i].draw(flag);
 		}
 		Main.add_button.draw(false);
-		if (test)
-			return false;
-		return true; // test
 	}
 
 	static update() {
-		let flag = Main.render();
-		if (flag === false)
-			return;
+		Main.render();
 		requestAnimationFrame(Main.update);
 	}
 }

@@ -8,6 +8,8 @@ export class MouseEvent {
     static c_flag = 0;
     static cor_x = 0;
     static cor_y = 0;
+    static obj_idx = 0;
+    static start_flag = false;
 
     static createObject(objects) {
 		objects.push(new Box(Pipeline.gl));
@@ -15,10 +17,17 @@ export class MouseEvent {
 		MouseEvent.new_object = objects[objects.length - 1];
 		let loc = Pipeline.gl.getUniformLocation(Pipeline.program.id, "model");
 		MouseEvent.new_object.setModelLoc(loc);
+        MouseEvent.obj_idx = objects.length - 1;
     }
 
     constructor(type, ray = null, button = null, objects = null) {
         this.type = type;
+        this.child1_type = null;
+        this.child1_event = null;
+        this.child2_type = null;
+        this.child2_event = null;
+        this.input_types = [];
+        this.input_events = [];
         this.m_event = null;
         if (type == 'click')
             this.setClick(ray, button, objects);
@@ -27,14 +36,80 @@ export class MouseEvent {
         else if (type == 'mousedown')
             this.setDown(ray);
         else if (type == 'mouseup')
-            this.setUp(ray);
+            this.setUp(objects);
+        else if (type == 'start')
+            this.setStart(objects);
+    }
+
+    destructor() {
+        window.removeEventListener('click', this.m_event);
+        window.removeEventListener('mousemove', this.m_event);
+        window.removeEventListener('mousedown', this.m_event);
+        window.removeEventListener('mouseup', this.m_event);
+        document.getElementById('start').removeEventListener('click', this.m_event);
+        document.getElementById('save').removeEventListener('click', this.child1_event);
+        document.getElementById('cancel').removeEventListener('click', this.child2_event);
+        for (let i = 0; i < this.input_events.length; i++) {
+            document.getElementById(this.input_types[i]).removeEventListener('input', this.input_events[i]);
+        }
+    }
+
+    setStart(objects) {
+        let tmp_event = () => {
+            if (MouseEvent.new_object) {
+                let max_x = -100, max_y = -100, min_x = 100, min_y = 100;
+                for (let k = 0; k < 4; k++) {
+                    if (MouseEvent.new_object.colbox.vertices[k][0] > max_x)
+                        max_x = MouseEvent.new_object.colbox.vertices[k][0];
+                    if (MouseEvent.new_object.colbox.vertices[k][0] < min_x)
+                        min_x = MouseEvent.new_object.colbox.vertices[k][0];
+                    if (MouseEvent.new_object.colbox.vertices[k][1] > max_y)
+                        max_y = MouseEvent.new_object.colbox.vertices[k][1];
+                    if (MouseEvent.new_object.colbox.vertices[k][1] < min_y)
+                        min_y = MouseEvent.new_object.colbox.vertices[k][1];
+                }
+                if (max_x > 14 || min_x < -14 || max_y > 7 || min_y < -7)
+                    flag = true;
+                if (flag === false) {
+                    for (let i = 1; i < objects.length; i++) {
+                        if (MouseEvent.obj_idx === i)
+                            continue;
+                        if (MouseEvent.new_object.collision(objects[i])) {
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                if (flag)
+                    objects.splice(MouseEvent.obj_idx, 1);
+                MouseEvent.new_object = null;
+                MouseEvent.obj_idx = 0;
+            }
+            // TODO -> 서버에 정보 보내기
+            console.log("서버에 정보 보내기");
+        }
+        document.getElementById('start').addEventListener('click', tmp_event);
+        this.m_event = tmp_event;
+        this.type = 'click';
     }
 
     setClick(ray, button, objects) {
         let tmp_event = (event) => {
             ray.setRay(event.clientX, event.clientY);
-            if(MouseEvent.new_object === null && button.collisionRay(ray.ray_des))
-                MouseEvent.createObject(objects);
+            if(MouseEvent.new_object === null) {
+                if (button.collisionRay(ray.ray_des))
+                    MouseEvent.createObject(objects);
+                else {
+                    for (let i = 6; i < objects.length; i++) {
+                        if (objects[i].collisionRay(ray.ray_des)) {
+                            MouseEvent.obj_idx = i;
+                            break;
+                        }
+                    }
+                    if (MouseEvent.obj_idx > 0)
+                        MouseEvent.new_object = objects[MouseEvent.obj_idx];
+                }
+            }
         }
         window.addEventListener('click', tmp_event);
         this.m_event = tmp_event;
@@ -62,7 +137,7 @@ export class MouseEvent {
 
     setDown(ray) {
         let tmp_event = (event) => {
-            if (MouseEvent.new_object == null || MouseEvent.m_flag === 1)
+            if (MouseEvent.new_object === null || MouseEvent.m_flag === 1)
                 return;
             ray.setRay(event.clientX, event.clientY);
             if (MouseEvent.new_object.collisionRay(ray.ray_des))
@@ -72,15 +147,138 @@ export class MouseEvent {
         this.m_event = tmp_event;
     }
 
-    setUp() {
+    setUp(objects) {
+        const modal = new bootstrap.Modal(document.querySelector('#exampleModal'));
         let tmp_event = () => {
-            if (MouseEvent.new_object == null)
+            if (MouseEvent.new_object === null)
                 return;
             MouseEvent.m_flag = 0;
             MouseEvent.c_flag = 0;
-            // TODO: 편집창 추가
+            modal.show();
         }
         window.addEventListener('mouseup', tmp_event);
         this.m_event = tmp_event;
+
+        tmp_event = () => {
+            let flag = false;
+            if (MouseEvent.new_object.pos[0] >= 14 || MouseEvent.new_object.pos[0] <= -14)
+                flag = true;
+            if (MouseEvent.new_object.pos[1] >= 7 || MouseEvent.new_object.pos[1] <= -7)
+                flag = true;
+            let max_x = -100, max_y = -100, min_x = 100, min_y = 100;
+			for (let k = 0; k < 4; k++) {
+				if (MouseEvent.new_object.colbox.vertices[k][0] > max_x)
+					max_x = MouseEvent.new_object.colbox.vertices[k][0];
+				if (MouseEvent.new_object.colbox.vertices[k][0] < min_x)
+					min_x = MouseEvent.new_object.colbox.vertices[k][0];
+				if (MouseEvent.new_object.colbox.vertices[k][1] > max_y)
+					max_y = MouseEvent.new_object.colbox.vertices[k][1];
+				if (MouseEvent.new_object.colbox.vertices[k][1] < min_y)
+					min_y = MouseEvent.new_object.colbox.vertices[k][1];
+			}
+			if (max_x > 14 || min_x < -14 || max_y > 7 || min_y < -7)
+				flag = true;
+            if (flag === false) {
+                for (let i = 1; i < objects.length; i++) {
+                    if (MouseEvent.obj_idx === i)
+                        continue;
+                    if (MouseEvent.new_object.collision(objects[i])) {
+                        flag = true;
+                        break;
+                    }
+                }
+            }
+            if (flag)
+                objects.splice(MouseEvent.obj_idx, 1);
+            MouseEvent.new_object = null;
+            MouseEvent.obj_idx = 0;
+            modal.hide();
+        }
+        document.getElementById('save').addEventListener('click', tmp_event);
+        this.child1_event = tmp_event;
+        this.child1_type = 'click';
+
+        tmp_event = () => {
+            objects.splice(MouseEvent.obj_idx, 1);
+            MouseEvent.new_object = null;
+            MouseEvent.obj_idx = 0;
+        }
+        document.getElementById('cancel').addEventListener('click', tmp_event);
+        this.child2_event = tmp_event;
+        this.child2_type = 'click';
+        this.setWidth();
+        this.setHeight();
+        this.setDegree();
+        this.setRed();
+        this.setGreen();
+        this.setBlue();
+    }
+
+    setWidth() {
+        let tmp_event = () => {
+            let width = Math.abs(document.getElementById('width').value);
+            let height = Math.abs(document.getElementById('height').value);
+            MouseEvent.new_object.setScaleBox(width, height);
+        }
+        this.input_types.push('width');
+        this.input_events.push(tmp_event);
+        document.getElementById('width').addEventListener('input', tmp_event);
+    }
+
+    setHeight() {
+        let tmp_event = () => {
+            let width = Math.abs(document.getElementById('width').value);
+            let height = Math.abs(document.getElementById('height').value);
+            MouseEvent.new_object.setScaleBox(width, height);
+        }
+        this.input_types.push('height');
+        this.input_events.push(tmp_event);
+        document.getElementById('height').addEventListener('input', tmp_event);
+    }
+
+    setDegree() {
+        let tmp_event = () => {
+            let d = document.getElementById('degree').value;
+            MouseEvent.new_object.rotBox(d);
+        }
+        this.input_types.push('degree');
+        this.input_events.push(tmp_event);
+        document.getElementById('degree').addEventListener('input', tmp_event);
+    }
+
+    setRed() {
+        let tmp_event = () => {
+            let r = Math.abs(document.getElementById('red').value) / 255;
+            let g = Math.abs(document.getElementById('green').value) / 255;
+            let b = Math.abs(document.getElementById('blue').value) / 255;
+            MouseEvent.new_object.setColor([r, g, b, 1]);
+        }
+        this.input_types.push('red');
+        this.input_events.push(tmp_event);
+        document.getElementById('red').addEventListener('input', tmp_event);
+    }
+
+    setGreen() {
+        let tmp_event = () => {
+            let r = Math.abs(document.getElementById('red').value) / 255;
+            let g = Math.abs(document.getElementById('green').value) / 255;
+            let b = Math.abs(document.getElementById('blue').value) / 255;
+            MouseEvent.new_object.setColor([r, g, b, 1]);
+        }
+        this.input_types.push('green');
+        this.input_events.push(tmp_event);
+        document.getElementById('green').addEventListener('input', tmp_event);
+    }
+
+    setBlue() {
+        let tmp_event = () => {
+            let r = Math.abs(document.getElementById('red').value) / 255;
+            let g = Math.abs(document.getElementById('green').value) / 255;
+            let b = Math.abs(document.getElementById('blue').value) / 255;
+            MouseEvent.new_object.setColor([r, g, b, 1]);
+        }
+        this.input_types.push('blue');
+        this.input_events.push(tmp_event);
+        document.getElementById('blue').addEventListener('input', tmp_event);
     }
 }

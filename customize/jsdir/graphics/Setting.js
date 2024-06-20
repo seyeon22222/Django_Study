@@ -15,16 +15,17 @@ export class Setting {
         let ball = new Sphere(Pipeline.gl, Pipeline.program);
 		ball.createSphere();
         objects.push(ball);
-		for (let i = 1; i <= 4; i++)
+		for (let i = 1; i <= 5; i++)
 			objects.push(new Box(Pipeline.gl, Pipeline.program));
-		objects[1].createBox(0.5, 3);
-		objects[1].movePos([-15, 0, 0]);
+		objects[1].createBox(1, 1);
 		objects[2].createBox(0.5, 3);
-		objects[2].movePos([15, 0, 0]);
-		objects[3].createBox(30, 0.5);
-		objects[3].movePos([0, 8, 0]);
+		objects[2].movePos([-15, 0, 0]);
+		objects[3].createBox(0.5, 3);
+		objects[3].movePos([15, 0, 0]);
 		objects[4].createBox(30, 0.5);
-		objects[4].movePos([0, -8, 0]);
+		objects[4].movePos([0, 8, 0]);
+		objects[5].createBox(30, 0.5);
+		objects[5].movePos([0, -8, 0]);
 
 		let loc = Pipeline.gl.getUniformLocation(Pipeline.program.id, "model");
 		for (let i = 0; i < objects.length; i++)

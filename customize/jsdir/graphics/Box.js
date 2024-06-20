@@ -19,6 +19,7 @@ export class Box {
         this.width;
         this.height;
         this.pos = [0, 0, 0, 1];
+        this.color = [1, 1, 1, 1];
         this.degree = 0;
     }
 
@@ -71,7 +72,7 @@ export class Box {
         };
         this.mesh = Mesh.from(this.gl, buffer_view, indices);
         this.setCollisionMesh();
-        this.colbox = new CollisionBox(sizeWidth, sizeHeight, 0.2);
+        this.colbox = new CollisionBox(this.width, this.height, 0.2);
     }
 
     setCollisionMesh() {
@@ -142,15 +143,19 @@ export class Box {
     }
 
     setScaleBox(width, height) {
-        this.scale_mat[0] *= width / this.width;
-        this.scale_mat[5] *= height / this.height;
+        this.scale_mat = Mat4x4.identityMat();
+        this.scale_mat[0] = width;
+        this.scale_mat[5] = height;
         this.width = width;
         this.height = height;
         this.model = Mat4x4.multipleMat4(this.rot_mat, this.scale_mat);
         this.model = Mat4x4.multipleMat4(this.pos_mat, this.model);
+        this.colbox.scaleBox(width, height);
     }
 
     setColor(color) {
+        for (let i = 0; i < 4; i++)
+            this.color[i] = color[i];
         let color_data = [];
         for (let i = 0; i < 24; i++) {
             for (let j = 0; j < 4; j++) color_data.push(color[j])

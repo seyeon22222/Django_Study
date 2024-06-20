@@ -25,8 +25,12 @@ export class Ray {
     }
 
     setRay(x, y) {
+        this.inv_view = Mat4x4.invMat4(this.cam.view_mat);
         let ori = this.windowToCanvasNDC(x, y);
-        ori = [ori.x * this.cam.near, ori.y * this.cam.near, -this.cam.near, this.cam.near];
+        let f_near = [0, 0, -this.cam.near, 1];
+        f_near = Mat4x4.multipleMat4AndVec4(Mat4x4.rotMatAxisY(this.cam.degree), f_near);
+        f_near = f_near[2];
+        ori = [ori.x * -f_near, ori.y * -f_near, f_near, -f_near];
         ori = Mat4x4.multipleMat4AndVec4(this.inv_porj, ori);
         ori = Mat4x4.multipleMat4AndVec4(this.inv_view, ori);
         for (let i = 0; i < 3; i++)
@@ -34,8 +38,8 @@ export class Ray {
 		let dir = Mat4.sub(this.origin, this.cam.pos);
 		dir = normalizeVec(dir);
 		this.dir = [dir[0], dir[1], dir[2], 0];
-		let t = -Mat4.dot(this.origin, [0, 0, 1, 0]) / Mat4.dot(this.dir, [0, 0, 1, 0]);
-		this.ray_des = Mat4.sum(this.origin, Mat4.mulConst(t, this.dir));
+		let t = -Mat4.dot(this.cam.pos, [0, 0, 1, 0]) / Mat4.dot(this.dir, [0, 0, 1, 0]);
+		this.ray_des = Mat4.sum(this.cam.pos, Mat4.mulConst(t, this.dir));
 		this.ray_des[3] = 1;
     }
 }
